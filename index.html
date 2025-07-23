@@ -25,6 +25,10 @@
     <!-- leaflet-gpx library used to display GPX data -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/2.1.2/gpx.min.js"></script>
 
+    <!-- Leaflet BigImage library for exporting the map as a PNG file -->
+    <link rel="stylesheet" href="https://pasichnykvasyl.github.io/Leaflet.BigImage/src/Leaflet.BigImage.css" />
+    <script src="https://pasichnykvasyl.github.io/Leaflet.BigImage/src/Leaflet.BigImage.js"></script>
+
     <!-- Fix missing markers in Leaflet -->
     <script>
         delete L.Icon.Default.prototype._getIconUrl;
@@ -76,6 +80,12 @@
         map.setView([51.505, -0.09], 13); // Reset the map view to the initial coordinates
     });
 
+    L.control.bigImage({
+        position: 'topright',
+        title: "Export Map as PNG",
+        printControlLabel: '💾',
+    }).addTo(map); // Add the BigImage control to the map
+
     function reset_message() {
         const message_span = document.getElementById('message_span');
 
@@ -111,7 +121,11 @@
 
             messageSpan.textContent = 'GPX file loaded successfully.';
             messageSpan.className = "success_message"; // Add success class for styling
-        }).addTo(map);
+
+        }).on('error', function(e) {
+            messageSpan.textContent = `Error loading GPX file: '${e.message}'`;
+            messageSpan.className = "error_message"; // Add error class for styling
+        }).addTo(map); // Add the GPX layer to the map
     });
     </script>
 </body>
