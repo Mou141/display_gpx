@@ -4,9 +4,115 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GPX Viewer with Leaflet</title>
+
+    <!-- Fixes viewport issues on mobile devices -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viewport-units-buggyfill/0.6.2/viewport-units-buggyfill.min.js" crossorigin=""></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            window.viewportUnitsBuggyfill.init({ force: true });
+        });
+    </script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <!-- Leaflet Javascript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Stylesheet for this page -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- leaflet-gpx library used to display GPX data -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/2.1.2/gpx.min.js"></script>
+
+    <!-- Fix missing markers in Leaflet -->
+    <script>
+        delete L.Icon.Default.prototype._getIconUrl;
+
+        L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
+    </script>
 </head>
 
 <body>
+    <!-- Map Container -->
+    <div id="map"></div>
 
+    <div id="non_map_div">
+        <input type="file" id="gpx_file" accept=".gpx" />
+        <button id="clear_button">Clear</button>
+        <span id="message_span" class="message">Please select a file.</span>
+    </div>
+
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }
+    ).addTo(map);
+
+    let gpx_layer = null; // Variable to hold the GPX layer
+    let gpx_blob_url = null; // Variable to hold the blob URL for the GPX file
+
+    document.getElementById('clear_button').addEventListener('click', function () {
+        reset_message(); // Reset the message span
+
+        document.getElementById('gpx_file').value = ''; // Clear the file input
+
+        if (gpx_layer) {
+            map.removeLayer(gpx_layer); // Remove the GPX layer from the map
+            gpx_layer = null; // Clear the layer variable
+        }
+        if (gpx_blob_url) {
+            URL.revokeObjectURL(gpx_blob_url); // Revoke the blob URL to free memory
+            gpx_blob_url = null; // Clear the blob URL variable
+        }
+
+        map.setView([51.505, -0.09], 13); // Reset the map view to the initial coordinates
+    });
+
+    function reset_message() {
+        const message_span = document.getElementById('message_span');
+
+        message_span.className = "message"; // Reset the message style
+        message_span.textContent = 'Please select a file.'; // Reset the message text
+    }
+
+    // Handle GPX file input
+    document.getElementById('gpx_file').addEventListener('change', function (event) {
+        var file = event.target.files[0];
+
+        if (!file) return; // Don't proceed if no file is selected
+
+        var messageSpan = document.getElementById('message_span');
+
+        messageSpan.className = "message"; // Reset previous success or error styles
+        messageSpan.textContent = 'Loading GPX file...';
+
+        if (gpx_layer) {
+            map.removeLayer(gpx_layer); // Remove previous GPX layer if it exists
+        }
+
+        if (gpx_blob_url) {
+            URL.revokeObjectURL(gpx_blob_url); // Revoke the previous blob URL
+        }
+
+        gpx_blob_url = URL.createObjectURL(file); // Create a new blob URL for the selected file
+
+        gpx_layer = new L.GPX(gpx_blob_url, {
+            async: true,
+        }).on('loaded', function(e) {
+            map.fitBounds(e.target.getBounds()); // Fit the map to the bounds of the GPX track
+
+            messageSpan.textContent = 'GPX file loaded successfully.';
+            messageSpan.className = "success_message"; // Add success class for styling
+        }).addTo(map);
+    });
+    </script>
 </body>
 </html>
